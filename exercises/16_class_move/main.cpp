@@ -1,4 +1,5 @@
 #include "../exercise.h"
+#include <utility>  
 
 // READ: 左值右值（概念）<https://learn.microsoft.com/zh-cn/cpp/c-language/l-value-and-r-value-expressions?view=msvc-170>
 // READ: 左值右值（细节）<https://zh.cppreference.com/w/cpp/language/value_category>
@@ -12,25 +13,62 @@
 class DynFibonacci {
     size_t *cache;
     int cached;
+    int capacity; 
 
 public:
     // TODO: 实现动态设置容量的构造器
-    DynFibonacci(int capacity): cache(new ?), cached(?) {}
+    // DynFibonacci(int capacity): cache(new ?), cached(?) {}
+    DynFibonacci(int capacity) 
+        : cache(new size_t[capacity]), cached(2), capacity(capacity) {
+        if (capacity >= 1) cache[0] = 0;
+        if (capacity >= 2) cache[1] = 1;
+    }
 
     // TODO: 实现移动构造器
-    DynFibonacci(DynFibonacci &&) noexcept = delete;
+    // DynFibonacci(DynFibonacci &&) noexcept = delete;
+    DynFibonacci(DynFibonacci&& other) noexcept 
+        : cache(other.cache), cached(other.cached), capacity(other.capacity) {
+        other.cache = nullptr;
+        other.cached = 0;
+        other.capacity = 0;
+    }
 
     // TODO: 实现移动赋值
     // NOTICE: ⚠ 注意移动到自身问题 ⚠
-    DynFibonacci &operator=(DynFibonacci &&) noexcept = delete;
+    // DynFibonacci &operator=(DynFibonacci &&) noexcept = delete;
+    DynFibonacci& operator=(DynFibonacci&& other) noexcept {
+        if (this != &other) {  // 防止自移动
+            delete[] cache;  // 释放原有资源
+            
+            // 接管资源
+            cache = other.cache;
+            cached = other.cached;
+            capacity = other.capacity;
+            
+            // 置空原对象
+            other.cache = nullptr;
+            other.cached = 0;
+            other.capacity = 0;
+        }
+        return *this;
+    }
 
     // TODO: 实现析构器，释放缓存空间
-    ~DynFibonacci();
-
+    ~DynFibonacci() {
+        delete[] cache;
+    }
     // TODO: 实现正确的缓存优化斐波那契计算
     size_t operator[](int i) {
-        for (; false; ++cached) {
-            cache[cached] = cache[cached - 1] + cache[cached - 2];
+        for (; cached <= i; ++cached) {
+            if (cached == 0) {
+                cache[0] = 0;
+            } else if (cached == 1) {
+                cache[1] = 1;
+            } else {
+                cache[cached] = cache[cached - 1] + cache[cached - 2];
+
+            }
+            //cache[cached] = cache[cached - 1] + cache[cached - 2];
         }
         return cache[i];
     }

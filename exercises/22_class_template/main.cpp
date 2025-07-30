@@ -10,6 +10,10 @@ struct Tensor4D {
     Tensor4D(unsigned int const shape_[4], T const *data_) {
         unsigned int size = 1;
         // TODO: 填入正确的 shape 并计算 size
+        for (int i = 0; i < 4; ++i) {
+            shape[i] = shape_[i];
+            size *= shape[i];
+        }
         data = new T[size];
         std::memcpy(data, data_, size * sizeof(T));
     }
@@ -28,6 +32,39 @@ struct Tensor4D {
     // 则 `this` 与 `others` 相加时，3 个形状为 `[1, 2, 1, 4]` 的子张量各自与 `others` 对应项相加。
     Tensor4D &operator+=(Tensor4D const &others) {
         // TODO: 实现单向广播的加法
+        for (int i = 0; i < 4; ++i) {
+            if (others.shape[i] != 1 && others.shape[i] != shape[i]) {
+                throw std::invalid_argument("Incompatible shapes for broadcasting");
+            }
+        }
+
+        // Calculate strides for both tensors
+        unsigned int this_strides[4] = {1, 1, 1, 1};
+        unsigned int other_strides[4] = {1, 1, 1, 1};
+        
+        for (int i = 3; i > 0; --i) {
+            this_strides[i-1] = this_strides[i] * shape[i];
+            other_strides[i-1] = other_strides[i] * others.shape[i];
+        }
+
+        // Perform the addition with broadcasting
+        for (unsigned int i = 0; i < shape[0]; ++i) {
+            for (unsigned int j = 0; j < shape[1]; ++j) {
+                for (unsigned int k = 0; k < shape[2]; ++k) {
+                    for (unsigned int l = 0; l < shape[3]; ++l) {
+                        unsigned int this_idx = i * this_strides[0] + j * this_strides[1] + 
+                                              k * this_strides[2] + l * this_strides[3];
+                        unsigned int other_i = i % others.shape[0];
+                        unsigned int other_j = j % others.shape[1];
+                        unsigned int other_k = k % others.shape[2];
+                        unsigned int other_l = l % others.shape[3];
+                        unsigned int other_idx = other_i * other_strides[0] + other_j * other_strides[1] + 
+                                               other_k * other_strides[2] + other_l * other_strides[3];
+                        data[this_idx] += others.data[other_idx];
+                    }
+                }
+            }
+        }
         return *this;
     }
 };
